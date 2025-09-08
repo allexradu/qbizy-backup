@@ -17,7 +17,7 @@ export function parsePostgresUrl(dbUrl: string) {
     }
 }
 
-function getTimestampedFilename(): string {
+function getTimestampedFilename(database: string): string {
     const now = new Date()
     const pad = (n: number) => n.toString().padStart(2, '0')
     const DD = pad(now.getDate())
@@ -26,7 +26,7 @@ function getTimestampedFilename(): string {
     const HH = pad(now.getHours())
     const mm = pad(now.getMinutes())
     const SS = pad(now.getSeconds())
-    return `qbizy_production_${DD}_${MM}_${YYYY}_${HH}:${mm}:${SS}.tar`
+    return `${database}_${DD}_${MM}_${YYYY}_${HH}:${mm}:${SS}.tar`
 }
 
 export async function backupDatabaseToTarFile(): Promise<void> {
@@ -37,7 +37,7 @@ export async function backupDatabaseToTarFile(): Promise<void> {
     const endpointId = host.split('.')[0]
     const portArg = port ? `:${port}` : ''
     const dbUri = `postgresql://${user}:${password}@${host}${portArg}/${database}?options=endpoint%3D${endpointId}`
-    const outputFile = `/tmp/backup/${getTimestampedFilename()}`
+    const outputFile = `/tmp/backup/${getTimestampedFilename(database)}`
 
     const command = `PGSSLMODE=require pg_dump --dbname="${dbUri}" --no-owner --no-privileges --format=tar --file="${outputFile}"`
     await execAsync(command)
