@@ -43,6 +43,19 @@ export async function backupDatabaseToTarFile(): Promise<void> {
     await execAsync(command)
     console.log('Backup completed:', outputFile)
 }
-await backupDatabaseToTarFile()
+
+async function runDailyBackupLoop() {
+    let lastBackup = Date.now() - 24 * 60 * 60 * 1000 // force backup on first run
+    while (true) {
+        const now = Date.now()
+        if (now - lastBackup >= 24 * 60 * 60 * 1000) {
+            await backupDatabaseToTarFile()
+            lastBackup = now
+        }
+        await new Promise(res => setTimeout(res, 60 * 1000)) // sleep 1 minute
+    }
+}
+
+await runDailyBackupLoop()
 
 
