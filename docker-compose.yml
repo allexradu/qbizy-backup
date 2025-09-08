@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  backup:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=your_postgres_connection_url
+      - OUTPUT_FILE=backup.sql
