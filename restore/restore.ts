@@ -17,32 +17,23 @@ export function parsePostgresUrl(dbUrl: string) {
     }
 }
 
-function getTimestampedFilename(): string {
-    const now = new Date()
-    const pad = (n: number) => n.toString().padStart(2, '0')
-    const DD = pad(now.getDate())
-    const MM = pad(now.getMonth() + 1)
-    const YYYY = now.getFullYear()
-    const HH = pad(now.getHours())
-    const mm = pad(now.getMinutes())
-    const SS = pad(now.getSeconds())
-    return `qbizy_production_${DD}_${MM}_${YYYY}_${HH}:${mm}:${SS}.tar`
-}
-
-export async function backupDatabaseToTarFile(): Promise<void> {
-    console.log('Backup started...')
+export async function restoreDatabaseFromTarFile(): Promise<void> {
+    console.log('Restore started...')
     const dbUrl = process.env.DATABASE_URL!
+    const restoreFile = process.env.RESTORE_FILE_NAME
+    if (!restoreFile) throw new Error('RESTORE_FILE_NAME env not set')
     const password = parsePostgresUrl(dbUrl).password
     const { host, user, port, database } = parsePostgresUrl(dbUrl)
     const endpointId = host.split('.')[0]
     const portArg = port ? `:${port}` : ''
     const dbUri = `postgresql://${user}:${password}@${host}${portArg}/${database}?options=endpoint%3D${endpointId}`
-    const outputFile = `/tmp/backup/${getTimestampedFilename()}`
+    const filePath = `/tmp/backup/${restoreFile}`
 
-    const command = `PGSSLMODE=require pg_dump --dbname="${dbUri}" --no-owner --no-privileges --format=tar --file="${outputFile}"`
+    const command = `PGSSLMODE=require pg_restore --dbname="${dbUri}" --no-owner --no-privileges --format=tar "${filePath}"`
     await execAsync(command)
-    console.log('Backup completed:', outputFile)
+    console.log('Restore completed:', filePath)
 }
-await backupDatabaseToTarFile()
+
+await restoreDatabaseFromTarFile()
 
 

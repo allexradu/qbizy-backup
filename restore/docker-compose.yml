@@ -1,0 +1,9 @@
+services:
+  restore:
+    build: .
+    platform: linux/amd64
+    volumes:
+      - .:/app
+      - ../tmp:/tmp/backup
+    env_file:
+      - ../.env

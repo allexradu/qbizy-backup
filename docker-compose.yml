@@ -1,9 +1,9 @@
-version: '3.8'
 services:
   backup:
     build: .
+    platform: linux/amd64
     volumes:
       - .:/app
+      - ./tmp:/tmp/backup
     environment:
-      - DATABASE_URL=your_postgres_connection_url
-      - OUTPUT_FILE=backup.sql
+      - DATABASE_URL=${DATABASE_URL}
