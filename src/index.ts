@@ -1,8 +1,9 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { config } from 'dotenv'
+import { uploadSmallFileTar } from './utils/upload-file'
 
-config({ path: '.dev.vars' })
+config({ path: '../dev.vars' })
 
 const execAsync = promisify(exec)
 // Helper to extract password from DB URL
@@ -29,7 +30,7 @@ function getTimestampedFilename(database: string): string {
     return `${database}_${DD}_${MM}_${YYYY}_${HH}:${mm}:${SS}.tar`
 }
 
-export async function backupDatabaseToTarFile(): Promise<void> {
+export async function backupDatabaseToTarFile(): Promise<string> {
     console.log('Backup started...')
     const dbUrl = process.env.DATABASE_URL!
     const password = parsePostgresUrl(dbUrl).password
@@ -42,6 +43,7 @@ export async function backupDatabaseToTarFile(): Promise<void> {
     const command = `PGSSLMODE=require pg_dump --dbname="${dbUri}" --no-owner --no-privileges --format=tar --file="${outputFile}"`
     await execAsync(command)
     console.log('Backup completed:', outputFile)
+    return outputFile
 }
 
 async function runDailyBackupLoop() {
@@ -49,7 +51,21 @@ async function runDailyBackupLoop() {
     while (true) {
         const now = Date.now()
         if (now - lastBackup >= 24 * 60 * 60 * 1000) {
-            await backupDatabaseToTarFile()
+            const filePath = await backupDatabaseToTarFile()
+            const database = parsePostgresUrl(process.env.DATABASE_URL!).database
+
+            const date = new Date()
+            const pad = (n: number) => n.toString().padStart(2, '0')
+            const DD = pad(date.getDate())
+            const MM = pad(date.getMonth() + 1)
+            const YYYY = date .getFullYear()
+
+            const fileName = `${database}/${YYYY}/${MM}/${DD}/${getTimestampedFilename(database)}`
+            const response = await uploadSmallFileTar(fileName, filePath)
+            console.log('Uploaded backup to Backblaze B2:', response)
+            // delete local file
+            await execAsync(`rm -f "${filePath}"`)
+            console.log('Deleted local backup file:', filePath)
             lastBackup = now
         }
         await new Promise(res => setTimeout(res, 60 * 1000)) // sleep 1 minute

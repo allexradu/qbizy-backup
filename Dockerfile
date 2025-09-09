@@ -13,4 +13,4 @@ WORKDIR /app
 COPY . .
 RUN bun install
 RUN mkdir -p /tmp/backup
-CMD ["bun", "index.ts"]
+CMD ["bun", "src/index.ts"]
